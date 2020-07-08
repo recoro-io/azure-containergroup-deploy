@@ -18,10 +18,11 @@
   },
   "homepage": "https://github.com/Azure/aci-deploy-action#readme",
   "dependencies": {
-    "@actions/core": "^1.2.2",
-    "@azure/arm-containerinstance": "^5.4.0",
-    "@types/q": "^1.5.2",
-    "azure-actions-webclient": "^1.0.10"
+    "@actions/core": "1.2.1",
+    "@azure/ms-rest-js": "^2.0.7",
+    "@azure/ms-rest-azure-js": "^2.0.1",
+    "azure-actions-webclient": "1.0.8",
+    "tslib": "^1.9.3"
   },
   "devDependencies": {
     "@types/node": "^13.5.2",

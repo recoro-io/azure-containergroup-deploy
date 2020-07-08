@@ -1,3 +1,6 @@
+# NOTE: Watch PR https://github.com/Azure/azure-sdk-for-js/pull/9757 - once this PR is merged and released tp NPM the arm-containerinstance code
+#       copied and pasted in this project can be replaced with the NPM package
+
 name: 'Deploy to Azure Container Instances'
 description: 'Deploy to Containers to Azure Container Instances. github.com/Azure/Actions'
 inputs:
@@ -33,8 +36,9 @@ inputs:
         required: false
         default: 1
     dns-name-label:
-        description: 'The DNS Name Label for Container with Public IP'
-        required: true
+        description: 'The DNS Name Label for Container with Public IP - required for Public IP, must be absent for Private IP'
+        required: false
+        default: ''
     environment-variables:
         description: 'List of environment variables for the container. Space-seperated in "key=value" format'
         required: false
@@ -69,6 +73,10 @@ inputs:
         description: 'IP Address type of the Container Group. Accepted Values are { Private, Public }'
         required: false
         default: 'Public'
+    network-profile:
+        description: 'Network profile ID - required if IP is Private, ignored if IP is Public (looks like /subscriptions/<subscriptionID>/resourceGroups/<resourceGroup>/providers/Microsoft.Network/networkProfiles/<networkProfileName>)'
+        required: false
+        default: ''
     location:
         description: 'Location where the Container will be deployed'
         required: true
@@ -118,6 +126,14 @@ inputs:
         default: 'Always'
     secure-environment-variables:
         description: 'List of secure environment variables for the container. Space seperated values in "key=value" format'
+        default: ''
+    secrets-volume:
+        description: 'List of entries in the secrets volume. Space seperated values in "key=value" format. Space characters in the key are replaced with periods.'
+        required: false
+        default: ''
+    secrets-mount-path:
+        description: 'The path within the container where the secrets volume will be mounted. Must not contain ":"'
+        required: false
         default: ''
 outputs:
     app-url:

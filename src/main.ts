@@ -3,12 +3,10 @@ import * as crypto from "crypto";
 
 import { AuthorizerFactory } from "azure-actions-webclient/AuthorizerFactory";
 import { IAuthorizer } from "azure-actions-webclient/Authorizer/IAuthorizer";
-import { async } from 'q';
-import { ContainerInstanceManagementClient, ContainerInstanceManagementModels, ContainerInstanceManagementMappers } from "@azure/arm-containerinstance";
 import { TokenCredentials, ServiceClientCredentials } from "@azure/ms-rest-js";
 
 import { TaskParameters } from "./taskparameters";
-
+import { ContainerInstanceManagementClient, ContainerInstanceManagementModels } from './arm-containerinstance/containerInstanceManagementClient';
 
 var prefix = !!process.env.AZURE_HTTP_USER_AGENT ? `${process.env.AZURE_HTTP_USER_AGENT}` : "";
 
@@ -49,6 +47,7 @@ async function main() {
                 "type": taskParams.ipAddress,
                 "dnsNameLabel": taskParams.dnsNameLabel
             },
+            "networkProfile": taskParams.networkProfile,
             "diagnostics": taskParams.diagnostics,
             "volumes": taskParams.volumes,
             "osType": taskParams.osType,

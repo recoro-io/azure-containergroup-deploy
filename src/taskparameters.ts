@@ -1,13 +1,10 @@
 import * as core from '@actions/core';
-
 import { IAuthorizer } from "azure-actions-webclient/Authorizer/IAuthorizer";
-
-import fs = require('fs');
-import { ContainerInstanceManagementModels } from '@azure/arm-containerinstance';
+import { ContainerInstanceManagementModels } from './arm-containerinstance/containerInstanceManagementClient';
+import { ContainerGroupNetworkProfile } from './arm-containerinstance/models';
 
 export class TaskParameters {
     private static taskparams: TaskParameters;
-    private _endpoint: IAuthorizer;
     private _resourceGroup: string;
     private _commandLine: Array<string>;
     private _cpu: number;
@@ -30,11 +27,11 @@ export class TaskParameters {
     private _restartPolicy: ContainerInstanceManagementModels.ContainerGroupRestartPolicy;
     private _volumes: Array<ContainerInstanceManagementModels.Volume>;
     private _volumeMounts: Array<ContainerInstanceManagementModels.VolumeMount>;
+    private _networkProfile?: ContainerGroupNetworkProfile;
     
     private _subscriptionId: string;
 
     private constructor(endpoint: IAuthorizer) {
-        this._endpoint = endpoint;
         this._subscriptionId = endpoint.subscriptionID;
         this._resourceGroup = core.getInput('resource-group', { required: true });
         this._commandLine = [];
@@ -45,7 +42,7 @@ export class TaskParameters {
             });
         }
         this._cpu = parseFloat(core.getInput('cpu'));
-        this._dnsNameLabel = core.getInput('dns-name-label', { required: true });
+        this._dnsNameLabel = core.getInput('dns-name-label');
         this._diagnostics = {}
         let logType = core.getInput('log-type');
         let logAnalyticsWorkspace = core.getInput('log-analytics-workspace');
@@ -67,17 +64,34 @@ export class TaskParameters {
             this._gpuSKU = (gpuSku == 'K80') ? 'K80' : ( gpuSku == 'P100' ? 'P100' : 'V100');
         }
         this._image = core.getInput('image', { required: true });
-        let ipAddress = core.getInput('ip-address');
-        if(ipAddress != "Public" && "Private") {
+        const networkProfileId = core.getInput('network-profile');
+        const ipAddress = core.getInput('ip-address');
+        if(ipAddress && ["Public", "Private"].indexOf(ipAddress) < 0) {
             throw Error('The Value of IP Address must be either Public or Private');
         } else {
-            this._ipAddress = (ipAddress == 'Public') ? 'Public' : 'Private';
+            if (ipAddress == 'Private') {
+                if (!networkProfileId) {
+                    throw Error('A network profile must be specified if the IP address is set to Private');
+                }
+                if (!!this._dnsNameLabel) {
+                    throw Error('A DNS label may not be specified if the IP address is set to Private');
+                }
+                this._ipAddress = 'Private';
+                this._networkProfile = {
+                    id: networkProfileId
+                }
+            } else {
+                if (!!networkProfileId) {
+                    throw Error('A network profile may not be specified if the IP address is set to Public');
+                }
+                this._ipAddress = 'Public';
+            }
         }
         this._location = core.getInput('location', { required: true });
         this._memory = parseFloat(core.getInput('memory'));
         this._containerName = core.getInput('name', { required: true });
         let osType = core.getInput('os-type');
-        if(osType != 'Linux' && 'Windows') {
+        if(osType && ['Linux', 'Windows'].indexOf(osType) < 0) {
             throw Error('The Value of OS Type must be either Linux or Windows only!')
         } else {
             this._osType = (osType == 'Linux') ? 'Linux' : 'Windows';
@@ -86,7 +100,7 @@ export class TaskParameters {
         this._ports = [];
         this._getPorts(ports);
         let protocol = core.getInput('protocol');
-        if(protocol != "TCP" && "UDP") {
+        if(protocol && ["TCP", "UDP"].indexOf(protocol) < 0) {
             throw Error("The Network Protocol can only be TCP or UDP");
         } else {
             this._protocol = protocol == "TCP" ? 'TCP' : 'UDP';
@@ -102,7 +116,7 @@ export class TaskParameters {
         this._registryUsername = core.getInput('registry-username');
         this._registryPassword = core.getInput('registry-password');
         let restartPolicy = core.getInput('restart-policy');
-        if(restartPolicy != "Always" && "OnFailure" && "Never") {
+        if(restartPolicy && ["Always", "OnFailure", "Never"].indexOf(restartPolicy) < 0) {
             throw Error('The Value of Restart Policy can be "Always", "OnFailure" or "Never" only!');
         } else {
             this._restartPolicy = ( restartPolicy == 'Always' ) ? 'Always' : ( restartPolicy == 'Never' ? 'Never' : 'OnFailure');
@@ -110,10 +124,9 @@ export class TaskParameters {
 
         this._volumes = [];
         this._volumeMounts = [];
-        let gitRepoVolumeUrl = core.getInput('gitrepo-url');
-        let afsAccountName = core.getInput('azure-file-volume-account-name');
-        let afsShareName = core.getInput('azure-file-volume-share-name');
-        this._getVolumes(gitRepoVolumeUrl, afsShareName, afsAccountName);
+        this._getSecretVolume();
+        this._getGitVolume();
+        this._getAzureFileShareVolume();
     }
 
     private _getDiagnostics(logAnalyticsWorkspace: string, logAnalyticsWorkspaceKey: string, logType: string) {
@@ -121,7 +134,7 @@ export class TaskParameters {
             if(!logAnalyticsWorkspaceKey || !logAnalyticsWorkspace) {
                 throw Error("The Log Analytics Workspace Id or Workspace Key are not provided. Please fill in the appropriate parameters.");
             }
-            if(logType && (logType != 'ContainerInsights' && 'ContainerInstanceLogs')) {
+            if(logType && ['ContainerInsights', 'ContainerInstanceLogs'].indexOf(logType) < 0) {
                 throw Error("Log Type Can be Only of Type `ContainerInsights` or `ContainerInstanceLogs`");
             }
             let logAnalytics: ContainerInstanceManagementModels.LogAnalytics = { "workspaceId": logAnalyticsWorkspace, 
@@ -173,53 +186,83 @@ export class TaskParameters {
         this._ports = portObjArr;
     }
 
-    private _getVolumes(gitRepoVolumeUrl: string, afsShareName: string, afsAccountName: string) {
-        // Checking git repo volumes
-        if(gitRepoVolumeUrl) {
-            let gitRepoDir = core.getInput('gitrepo-dir');
-            let gitRepoMountPath = core.getInput('gitrepo-mount-path');
-            let gitRepoRevision = core.getInput('gitrepo-revision');
-            let vol: ContainerInstanceManagementModels.GitRepoVolume = { "repository": gitRepoVolumeUrl };
-            if(!gitRepoMountPath) {
-                throw Error("The Mount Path for GitHub Volume is not specified.");
-            }
-            if(gitRepoDir) {
-                vol.directory = gitRepoDir;
-            }
-            if(gitRepoRevision) {
-                vol.revision = gitRepoRevision;
-            }
-            let volMount: ContainerInstanceManagementModels.VolumeMount = { "name":"git-repo-vol", "mountPath":gitRepoMountPath };
-            this._volumes.push({ "name": "git-repo-vol", gitRepo: vol });
-            this._volumeMounts.push(volMount);
+    private _getSecretVolume() {
+        const secretsStr = core.getInput('secrets-volume');
+        if (!secretsStr) {
+            return;
         }
-        // Checking Azure File Share Volumes
-        if(afsShareName && afsAccountName) {
-            let afsMountPath = core.getInput('azure-file-volume-mount-path');
-            let afsAccountKey = core.getInput('azure-file-volume-account-key');
-            let afsReadOnly = core.getInput('azure-file-volume-read-only');
-            if(!afsMountPath) {
-                throw Error("The Mount Path for Azure File Share Volume is not specified");
-            }
-            let vol: ContainerInstanceManagementModels.AzureFileVolume = { "shareName": afsShareName, "storageAccountName": afsAccountName };
-            if(afsAccountKey) {
-                vol.storageAccountKey = afsAccountKey;
-            }
-            let volMount: ContainerInstanceManagementModels.VolumeMount = { "name": "azure-file-share-vol", "mountPath": afsMountPath };
-            if(afsReadOnly) {
-                if(afsReadOnly != "true" && "false") {
-                    throw Error("The Read-Only Flag can only be `true` or `false` for the Azure File Share Volume");
-                }
-                vol.readOnly = (afsReadOnly == "true");
-                volMount.readOnly = (afsReadOnly == "true");
-            }
-            this._volumes.push({ "name": "azure-file-share-vol", azureFile: vol });
-            this._volumeMounts.push(volMount);
-        } else if(!afsShareName && afsAccountName) {
+        const mountPath = core.getInput('secrets-mount-path');
+        if (!mountPath) {
+            throw new Error("The Mount Path for Secrets Volume is not specified.");
+        }
+        const secretsMap = secretsStr.split(' ').reduce((accumulator, nextKeyVal) => {
+            const keyval = nextKeyVal.split(/=(.+)/);
+            accumulator[keyval[0].replace('_', '.')] = keyval[1] || '';
+            return accumulator;
+        }, {} as { [propertyName: string]: string });
+
+        const volMount: ContainerInstanceManagementModels.VolumeMount = { "name": "secrets-vol", "mountPath": mountPath, readOnly: true };
+        this._volumes.push({ "name": volMount.name, secret: secretsMap });
+        this._volumeMounts.push(volMount);
+    }
+
+    private _getGitVolume() {
+        const gitRepoVolumeUrl = core.getInput('gitrepo-url');
+        if (!gitRepoVolumeUrl) {
+            return;
+        }
+        const gitRepoDir = core.getInput('gitrepo-dir');
+        const gitRepoMountPath = core.getInput('gitrepo-mount-path');
+        const gitRepoRevision = core.getInput('gitrepo-revision');
+        const vol: ContainerInstanceManagementModels.GitRepoVolume = { "repository": gitRepoVolumeUrl };
+        if(!gitRepoMountPath) {
+            throw Error("The Mount Path for GitHub Volume is not specified.");
+        }
+        if(gitRepoDir) {
+            vol.directory = gitRepoDir;
+        }
+        if(gitRepoRevision) {
+            vol.revision = gitRepoRevision;
+        }
+        const volMount: ContainerInstanceManagementModels.VolumeMount = { "name":"git-repo-vol", "mountPath":gitRepoMountPath };
+        this._volumes.push({ "name": "git-repo-vol", gitRepo: vol });
+        this._volumeMounts.push(volMount);
+    }
+
+    private _getAzureFileShareVolume() {
+        const afsAccountName = core.getInput('azure-file-volume-account-name');
+        const afsShareName = core.getInput('azure-file-volume-share-name');
+
+        if(!afsShareName && !afsAccountName) {
+            return;
+        }
+        if(!afsShareName) {
             throw Error("The Name of the Azure File Share is required to mount it as a volume");
-        } else if(!afsAccountName && afsShareName) {
+        }
+        if(!afsAccountName) {
             throw Error("The Storage Account Name for the Azure File Share is required to mount it as a volume");
-        } else {};
+        }
+
+        const afsMountPath = core.getInput('azure-file-volume-mount-path');
+        const afsAccountKey = core.getInput('azure-file-volume-account-key');
+        const afsReadOnly = core.getInput('azure-file-volume-read-only');
+        if(!afsMountPath) {
+            throw Error("The Mount Path for Azure File Share Volume is not specified");
+        }
+        const vol: ContainerInstanceManagementModels.AzureFileVolume = { "shareName": afsShareName, "storageAccountName": afsAccountName };
+        if(afsAccountKey) {
+            vol.storageAccountKey = afsAccountKey;
+        }
+        const volMount: ContainerInstanceManagementModels.VolumeMount = { "name": "azure-file-share-vol", "mountPath": afsMountPath };
+        if(afsReadOnly) {
+            if(["true", "false"].indexOf(afsReadOnly) < 0) {
+                throw Error("The Read-Only Flag can only be `true` or `false` for the Azure File Share Volume");
+            }
+            vol.readOnly = (afsReadOnly == "true");
+            volMount.readOnly = (afsReadOnly == "true");
+        }
+        this._volumes.push({ "name": "azure-file-share-vol", azureFile: vol });
+        this._volumeMounts.push(volMount);
     }
 
     public static getTaskParams(endpoint: IAuthorizer) {
@@ -267,6 +310,10 @@ export class TaskParameters {
 
     public get ipAddress() {
         return this._ipAddress;
+    }
+
+    public get networkProfile() {
+        return this._networkProfile;
     }
 
     public get location() {
@@ -320,5 +367,4 @@ export class TaskParameters {
     public get subscriptionId() {
         return this._subscriptionId;
     }
-
 }
