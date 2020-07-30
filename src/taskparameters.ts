@@ -1,69 +1,70 @@
 import * as core from '@actions/core';
 import { IAuthorizer } from "azure-actions-webclient/Authorizer/IAuthorizer";
-import { ContainerInstanceManagementModels } from './arm-containerinstance/containerInstanceManagementClient';
-import { ContainerGroupNetworkProfile } from './arm-containerinstance/models';
+import { ContainerInstanceManagementModels } from '@azure/arm-containerinstance';
+import { parse as yamlParse } from 'yaml';
 
 export class TaskParameters {
     private static taskparams: TaskParameters;
     private _resourceGroup: string;
-    private _commandLine: Array<string>;
-    private _cpu: number;
+    // private _commandLine: Array<string>;
+    // private _cpu: number;
     private _diagnostics: ContainerInstanceManagementModels.ContainerGroupDiagnostics;
     private _dnsNameLabel: string;
-    private _environmentVariables: Array<ContainerInstanceManagementModels.EnvironmentVariable>;
-    private _gpuCount: number;
-    private _gpuSKU: ContainerInstanceManagementModels.GpuSku;
-    private _image:string;
+    // private _environmentVariables: Array<ContainerInstanceManagementModels.EnvironmentVariable>;
+    // private _gpuCount: number;
+    // private _gpuSKU: ContainerInstanceManagementModels.GpuSku;
+    // private _image:string;
     private _ipAddress:ContainerInstanceManagementModels.ContainerGroupIpAddressType;
     private _location:string;
-    private _memory: number;
-    private _containerName: string;
+    // private _memory: number;
+    // private _containerName: string;
     private _osType: ContainerInstanceManagementModels.OperatingSystemTypes;
-    private _ports: Array<ContainerInstanceManagementModels.Port>;
+    // private _ports: Array<ContainerInstanceManagementModels.Port>;
     private _protocol: ContainerInstanceManagementModels.ContainerGroupNetworkProtocol;
     private _registryLoginServer: string;
     private _registryUsername: string;
     private _registryPassword: string;
     private _restartPolicy: ContainerInstanceManagementModels.ContainerGroupRestartPolicy;
     private _volumes: Array<ContainerInstanceManagementModels.Volume>;
-    private _volumeMounts: Array<ContainerInstanceManagementModels.VolumeMount>;
-    private _networkProfile?: ContainerGroupNetworkProfile;
+    // private _volumeMounts: Array<ContainerInstanceManagementModels.VolumeMount>;
+    private _networkProfile?: ContainerInstanceManagementModels.ContainerGroupNetworkProfile;
+    private _containers: ContainerInstanceManagementModels.Container[];
     
     private _subscriptionId: string;
 
     private constructor(endpoint: IAuthorizer) {
         this._subscriptionId = endpoint.subscriptionID;
         this._resourceGroup = core.getInput('resource-group', { required: true });
-        this._commandLine = [];
-        let commandLine = core.getInput("command-line");
-        if(commandLine) {
-            commandLine.split(' ').forEach((command: string) => {
-                this._commandLine.push(command);
-            });
-        }
-        this._cpu = parseFloat(core.getInput('cpu'));
+        // this._commandLine = [];
+        // let commandLine = core.getInput("command-line");
+        // if(commandLine) {
+        //     commandLine.split(' ').forEach((command: string) => {
+        //         this._commandLine.push(command);
+        //     });
+        // }
+        // this._cpu = parseFloat(core.getInput('cpu'));
         this._dnsNameLabel = core.getInput('dns-name-label');
         this._diagnostics = {}
         let logType = core.getInput('log-type');
         let logAnalyticsWorkspace = core.getInput('log-analytics-workspace');
         let logAnalyticsWorkspaceKey = core.getInput('log-analytics-workspace-key');
         this._getDiagnostics(logAnalyticsWorkspace, logAnalyticsWorkspaceKey, logType);
-        let environmentVariables = core.getInput('environment-variables');
-        let secureEnvironmentVariables = core.getInput('secure-environment-variables');
-        this._environmentVariables = []
-        this._getEnvironmentVariables(environmentVariables, secureEnvironmentVariables);
-        let gpuCount = core.getInput('gpu-count');
-        let gpuSku = core.getInput('gpu-sku');
-        if(gpuSku && !gpuCount) {
-            throw Error("You need to specify the count of GPU Resources with the SKU!"); 
-        } else {
-            if(gpuCount && !gpuSku) {
-                throw Error("GPU SKU is not specified for the count. Please provide the `gpu-sku` parameter");
-            }
-            this._gpuCount = parseInt(gpuCount);
-            this._gpuSKU = (gpuSku == 'K80') ? 'K80' : ( gpuSku == 'P100' ? 'P100' : 'V100');
-        }
-        this._image = core.getInput('image', { required: true });
+        // let environmentVariables = core.getInput('environment-variables');
+        // let secureEnvironmentVariables = core.getInput('secure-environment-variables');
+        // this._environmentVariables = []
+        // this._getEnvironmentVariables(environmentVariables, secureEnvironmentVariables);
+        // let gpuCount = core.getInput('gpu-count');
+        // let gpuSku = core.getInput('gpu-sku');
+        // if(gpuSku && !gpuCount) {
+        //     throw Error("You need to specify the count of GPU Resources with the SKU!"); 
+        // } else {
+        //     if(gpuCount && !gpuSku) {
+        //         throw Error("GPU SKU is not specified for the count. Please provide the `gpu-sku` parameter");
+        //     }
+        //     this._gpuCount = parseInt(gpuCount);
+        //     this._gpuSKU = (gpuSku == 'K80') ? 'K80' : ( gpuSku == 'P100' ? 'P100' : 'V100');
+        // }
+        // this._image = core.getInput('image', { required: true });
         const networkProfileId = core.getInput('network-profile');
         const ipAddress = core.getInput('ip-address');
         if(ipAddress && ["Public", "Private"].indexOf(ipAddress) < 0) {
@@ -71,10 +72,10 @@ export class TaskParameters {
         } else {
             if (ipAddress == 'Private') {
                 if (!networkProfileId) {
-                    throw Error('A network profile must be specified if the IP address is set to Private');
+                    throw Error('A network profile must be speicified if the IP address is set to Private');
                 }
                 if (!!this._dnsNameLabel) {
-                    throw Error('A DNS label may not be specified if the IP address is set to Private');
+                    throw Error('A DNS label may not be specified if the IP address is set to Public');
                 }
                 this._ipAddress = 'Private';
                 this._networkProfile = {
@@ -82,23 +83,23 @@ export class TaskParameters {
                 }
             } else {
                 if (!!networkProfileId) {
-                    throw Error('A network profile may not be specified if the IP address is set to Public');
+                    throw Error('A network profile may not be speicified if the IP address is set to Public');
                 }
                 this._ipAddress = 'Public';
             }
         }
         this._location = core.getInput('location', { required: true });
-        this._memory = parseFloat(core.getInput('memory'));
-        this._containerName = core.getInput('name', { required: true });
+        // this._memory = parseFloat(core.getInput('memory'));
+        // this._containerName = core.getInput('name', { required: true });
         let osType = core.getInput('os-type');
         if(osType && ['Linux', 'Windows'].indexOf(osType) < 0) {
             throw Error('The Value of OS Type must be either Linux or Windows only!')
         } else {
             this._osType = (osType == 'Linux') ? 'Linux' : 'Windows';
         }
-        let ports = core.getInput('ports');
-        this._ports = [];
-        this._getPorts(ports);
+        // let ports = core.getInput('ports');
+        // this._ports = [];
+        // this._getPorts(ports);
         let protocol = core.getInput('protocol');
         if(protocol && ["TCP", "UDP"].indexOf(protocol) < 0) {
             throw Error("The Network Protocol can only be TCP or UDP");
@@ -123,10 +124,64 @@ export class TaskParameters {
         }
 
         this._volumes = [];
-        this._volumeMounts = [];
+        // this._volumeMounts = [];
         this._getSecretVolume();
         this._getGitVolume();
         this._getAzureFileShareVolume();
+
+        this._containers = this._getContainers(core.getInput('containers'));
+    }
+
+    private _getContainers(containersStr: string): ContainerInstanceManagementModels.Container[] {
+        const containersObj = yamlParse(containersStr);
+        if (!containersObj || !Array.isArray(containersObj)) {
+            throw Error("Containers field must be a list");
+        }
+        return containersObj.map(item => {
+            if (!item['name'] || typeof item['name'] !== 'string') {
+                throw new Error('Container name may not be empty');
+            }
+            if (!item['image'] || typeof item['image'] !== 'string') {
+                throw new Error('Container image may not be empty');
+            }
+            const cpu = parseFloat(item.cpu);
+            if (cpu <= 0) {
+                throw new Error('Container must have positive cpu parameter');
+            }
+            const memory = parseFloat(item.memory);
+            if (memory <= 0) {
+                throw new Error('Container must have positive memory parameter');
+            }
+            const container = {
+                name: item['name'],
+                image: item['image'],
+                resources: {
+                    requests: {
+                        memoryInGB: memory,
+                        cpu: cpu
+                    }
+                },
+            } as ContainerInstanceManagementModels.Container;
+
+            if (!!item.command && typeof item.command === 'string') {
+                container.command = item.command.split(' ');
+            }
+
+            if (!!item.ports && typeof(item.ports === 'string')) {
+                container.ports = this._getPorts(item.ports);
+            }
+
+            const envVars = !!item['environment-variables'] && typeof item['environment-variables'] === 'string' ? item['environment-variables'] : '';
+            const secureEnvVars = !!item['secure-environment-variables'] && typeof item['secure-environment-variables'] === 'string' ? item['secure-environment-variables'] : '';
+            const variables = this._getEnvironmentVariables(envVars, secureEnvVars);
+            if (variables.length > 0) {
+                container.environmentVariables = variables;
+            }
+
+            // volumeMounts?: VolumeMount[];
+
+            return container;
+        });
     }
 
     private _getDiagnostics(logAnalyticsWorkspace: string, logAnalyticsWorkspaceKey: string, logType: string) {
@@ -148,7 +203,8 @@ export class TaskParameters {
         }
     }
 
-    private _getEnvironmentVariables(environmentVariables: string, secureEnvironmentVariables: string) {
+    private _getEnvironmentVariables(environmentVariables: string, secureEnvironmentVariables: string): Array<ContainerInstanceManagementModels.EnvironmentVariable> {
+        const variables: Array<ContainerInstanceManagementModels.EnvironmentVariable> = [];
         if(environmentVariables) {
             // split on whitespace, but ignore the ones that are enclosed in quotes
             let keyValuePairs = environmentVariables.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
@@ -175,15 +231,16 @@ export class TaskParameters {
                 this._environmentVariables.push(obj);
             })
         }
+        return variables;
     }
 
-    private  _getPorts(ports: string) {
+    private  _getPorts(ports: string): Array<ContainerInstanceManagementModels.Port> {
         let portObjArr: Array<ContainerInstanceManagementModels.Port> = [];
         ports.split(' ').forEach((portStr: string) => {
             let portInt = parseInt(portStr);
             portObjArr.push({ "port": portInt });
         });
-        this._ports = portObjArr;
+        return portObjArr;
     }
 
     private _getSecretVolume() {
@@ -276,13 +333,13 @@ export class TaskParameters {
         return this._resourceGroup;
     }
 
-    public get commandLine() {
-        return this._commandLine;
-    }
+    // public get commandLine() {
+    //     return this._commandLine;
+    // }
 
-    public get cpu() {
-        return this._cpu;
-    }
+    // public get cpu() {
+    //     return this._cpu;
+    // }
 
     public get diagnostics() {
         return this._diagnostics;
@@ -292,21 +349,21 @@ export class TaskParameters {
         return this._dnsNameLabel;
     }
 
-    public get environmentVariables() {
-        return this._environmentVariables;
-    }
+    // public get environmentVariables() {
+    //     return this._environmentVariables;
+    // }
 
-    public get gpuCount() {
-        return this._gpuCount;
-    }
+    // public get gpuCount() {
+    //     return this._gpuCount;
+    // }
 
-    public get gpuSku() {
-        return this._gpuSKU;
-    }
+    // public get gpuSku() {
+    //     return this._gpuSKU;
+    // }
 
-    public get image() {
-        return this._image;
-    }
+    // public get image() {
+    //     return this._image;
+    // }
 
     public get ipAddress() {
         return this._ipAddress;
@@ -320,21 +377,21 @@ export class TaskParameters {
         return this._location;
     }
 
-    public get memory() {
-        return this._memory;
-    }
+    // public get memory() {
+    //     return this._memory;
+    // }
 
-    public get containerName() {
-        return this._containerName;
-    }
+    // public get containerName() {
+    //     return this._containerName;
+    // }
 
     public get osType() {
         return this._osType;
     }
 
-    public get ports() {
-        return this._ports;
-    }
+    // public get ports() {
+    //     return this._ports;
+    // }
 
     public get protocol() {
         return this._protocol;
@@ -360,9 +417,9 @@ export class TaskParameters {
         return this._volumes;
     }
 
-    public get volumeMounts() {
-        return this._volumeMounts;
-    }
+    // public get volumeMounts() {
+    //     return this._volumeMounts;
+    // }
 
     public get subscriptionId() {
         return this._subscriptionId;

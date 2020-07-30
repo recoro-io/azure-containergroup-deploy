@@ -6,7 +6,7 @@ import { IAuthorizer } from "azure-actions-webclient/Authorizer/IAuthorizer";
 import { TokenCredentials, ServiceClientCredentials } from "@azure/ms-rest-js";
 
 import { TaskParameters } from "./taskparameters";
-import { ContainerInstanceManagementClient, ContainerInstanceManagementModels } from './arm-containerinstance/containerInstanceManagementClient';
+import { ContainerInstanceManagementClient, ContainerInstanceManagementModels } from '@azure/arm-containerinstance';
 
 var prefix = !!process.env.AZURE_HTTP_USER_AGENT ? `${process.env.AZURE_HTTP_USER_AGENT}` : "";
 
@@ -101,6 +101,8 @@ function getResources(taskParams: TaskParameters): ContainerInstanceManagementMo
         return resRequirements;
     }
 }
+
+function getContainer(taskParams)
 
 function getPorts(taskParams: TaskParameters): Array<ContainerInstanceManagementModels.Port> {
     let ports = taskParams.ports;

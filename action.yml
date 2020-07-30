@@ -66,6 +66,7 @@ inputs:
     gpu-sku:
         description: 'The SKU for the GPUs specified. Accepted Values are { K80, P100, V100 }'
         default: ''
+        required: false
     image:
         description: 'Specify the fully qualified container image name. For example, "myregistry.azurecr.io/nginx:latest" or "python:3.7.2-alpine/"'
         required: true
@@ -127,6 +128,7 @@ inputs:
     secure-environment-variables:
         description: 'List of secure environment variables for the container. Space seperated values in "key=value" format'
         default: ''
+        required: false
     secrets-volume:
         description: 'List of entries in the secrets volume. Space seperated values in "key=value" format. Space characters in the key are replaced with periods.'
         required: false
