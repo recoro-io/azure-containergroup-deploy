@@ -2,9 +2,12 @@ import * as core from '@actions/core';
 import { IAuthorizer } from "azure-actions-webclient/Authorizer/IAuthorizer";
 import { ContainerInstanceManagementModels } from '@azure/arm-containerinstance';
 import { parse as yamlParse } from 'yaml';
+import { VolumeMount } from '@azure/arm-containerinstance/esm/models';
+import { parse } from 'path';
 
 export class TaskParameters {
     private static taskparams: TaskParameters;
+    private _groupName: string;
     private _resourceGroup: string;
     // private _commandLine: Array<string>;
     // private _cpu: number;
@@ -26,7 +29,6 @@ export class TaskParameters {
     private _registryPassword: string;
     private _restartPolicy: ContainerInstanceManagementModels.ContainerGroupRestartPolicy;
     private _volumes: Array<ContainerInstanceManagementModels.Volume>;
-    // private _volumeMounts: Array<ContainerInstanceManagementModels.VolumeMount>;
     private _networkProfile?: ContainerInstanceManagementModels.ContainerGroupNetworkProfile;
     private _containers: ContainerInstanceManagementModels.Container[];
     
@@ -34,37 +36,14 @@ export class TaskParameters {
 
     private constructor(endpoint: IAuthorizer) {
         this._subscriptionId = endpoint.subscriptionID;
+        this._groupName = core.getInput('group-name', { required: true });
         this._resourceGroup = core.getInput('resource-group', { required: true });
-        // this._commandLine = [];
-        // let commandLine = core.getInput("command-line");
-        // if(commandLine) {
-        //     commandLine.split(' ').forEach((command: string) => {
-        //         this._commandLine.push(command);
-        //     });
-        // }
-        // this._cpu = parseFloat(core.getInput('cpu'));
         this._dnsNameLabel = core.getInput('dns-name-label');
         this._diagnostics = {}
         let logType = core.getInput('log-type');
         let logAnalyticsWorkspace = core.getInput('log-analytics-workspace');
         let logAnalyticsWorkspaceKey = core.getInput('log-analytics-workspace-key');
         this._getDiagnostics(logAnalyticsWorkspace, logAnalyticsWorkspaceKey, logType);
-        // let environmentVariables = core.getInput('environment-variables');
-        // let secureEnvironmentVariables = core.getInput('secure-environment-variables');
-        // this._environmentVariables = []
-        // this._getEnvironmentVariables(environmentVariables, secureEnvironmentVariables);
-        // let gpuCount = core.getInput('gpu-count');
-        // let gpuSku = core.getInput('gpu-sku');
-        // if(gpuSku && !gpuCount) {
-        //     throw Error("You need to specify the count of GPU Resources with the SKU!"); 
-        // } else {
-        //     if(gpuCount && !gpuSku) {
-        //         throw Error("GPU SKU is not specified for the count. Please provide the `gpu-sku` parameter");
-        //     }
-        //     this._gpuCount = parseInt(gpuCount);
-        //     this._gpuSKU = (gpuSku == 'K80') ? 'K80' : ( gpuSku == 'P100' ? 'P100' : 'V100');
-        // }
-        // this._image = core.getInput('image', { required: true });
         const networkProfileId = core.getInput('network-profile');
         const ipAddress = core.getInput('ip-address');
         if(ipAddress && ["Public", "Private"].indexOf(ipAddress) < 0) {
@@ -89,17 +68,12 @@ export class TaskParameters {
             }
         }
         this._location = core.getInput('location', { required: true });
-        // this._memory = parseFloat(core.getInput('memory'));
-        // this._containerName = core.getInput('name', { required: true });
         let osType = core.getInput('os-type');
         if(osType && ['Linux', 'Windows'].indexOf(osType) < 0) {
             throw Error('The Value of OS Type must be either Linux or Windows only!')
         } else {
             this._osType = (osType == 'Linux') ? 'Linux' : 'Windows';
         }
-        // let ports = core.getInput('ports');
-        // this._ports = [];
-        // this._getPorts(ports);
         let protocol = core.getInput('protocol');
         if(protocol && ["TCP", "UDP"].indexOf(protocol) < 0) {
             throw Error("The Network Protocol can only be TCP or UDP");
@@ -124,7 +98,6 @@ export class TaskParameters {
         }
 
         this._volumes = [];
-        // this._volumeMounts = [];
         this._getSecretVolume();
         this._getGitVolume();
         this._getAzureFileShareVolume();
@@ -144,11 +117,11 @@ export class TaskParameters {
             if (!item['image'] || typeof item['image'] !== 'string') {
                 throw new Error('Container image may not be empty');
             }
-            const cpu = parseFloat(item.cpu);
+            const cpu = parseFloat(item['cpu']);
             if (cpu <= 0) {
                 throw new Error('Container must have positive cpu parameter');
             }
-            const memory = parseFloat(item.memory);
+            const memory = parseFloat(item['memory']);
             if (memory <= 0) {
                 throw new Error('Container must have positive memory parameter');
             }
@@ -163,22 +136,50 @@ export class TaskParameters {
                 },
             } as ContainerInstanceManagementModels.Container;
 
-            if (!!item.command && typeof item.command === 'string') {
-                container.command = item.command.split(' ');
+            if (!!item['command'] && typeof item['command'] === 'string') {
+                container.command = item['command'].split(' ');
             }
 
-            if (!!item.ports && typeof(item.ports === 'string')) {
-                container.ports = this._getPorts(item.ports);
+            if (!!item['ports'] && typeof(item['ports'] === 'string')) {
+                container.ports = this._getPorts(item['ports']);
             }
 
-            const envVars = !!item['environment-variables'] && typeof item['environment-variables'] === 'string' ? item['environment-variables'] : '';
-            const secureEnvVars = !!item['secure-environment-variables'] && typeof item['secure-environment-variables'] === 'string' ? item['secure-environment-variables'] : '';
+            const envVars = !!item['environmentVariables'] && typeof item['environmentVariables'] === 'string' ? item['environmentVariables'] : '';
+            const secureEnvVars = 
+                !!item['secureEnvironmentVariables'] && typeof item['secureEnvironmentVariables'] === 'string' 
+                ? item['secureEnvironmentVariables'] 
+                : '';
             const variables = this._getEnvironmentVariables(envVars, secureEnvVars);
             if (variables.length > 0) {
                 container.environmentVariables = variables;
             }
 
-            // volumeMounts?: VolumeMount[];
+            const mounts: VolumeMount[] = [];
+            if (!!item['azureFileVolumeMountPath'] && typeof item['azureFileVolumeMountPath'] === 'string') {
+                mounts.push({ 
+                    "name": "azure-file-share-vol",
+                    "mountPath": item['azureFileVolumeMountPath']
+                });
+            }
+            if (!!item['gitrepoMountPath'] && typeof item['gitrepoMountPath'] === 'string') {
+                mounts.push({ 
+                    "name": "git-repo-vol",
+                    "mountPath": item['gitrepoMountPath']
+                });
+            }
+            if (!!item['gitrepoMountPath'] && typeof item['gitrepoMountPath'] === 'string') {
+                mounts.push({ 
+                    "name": "git-repo-vol",
+                    "mountPath": item['gitrepoMountPath']
+                });
+            }
+            if (!!item['secretsMountPath'] && typeof item['secretsMountPath'] === 'string') {
+                mounts.push({ 
+                    "name": "secrets-vol",
+                    "mountPath": item['secretsMountPath']
+                });
+            }
+            container.volumeMounts = mounts;
 
             return container;
         });
@@ -235,12 +236,7 @@ export class TaskParameters {
     }
 
     private  _getPorts(ports: string): Array<ContainerInstanceManagementModels.Port> {
-        let portObjArr: Array<ContainerInstanceManagementModels.Port> = [];
-        ports.split(' ').forEach((portStr: string) => {
-            let portInt = parseInt(portStr);
-            portObjArr.push({ "port": portInt });
-        });
-        return portObjArr;
+        return ports.split(' ').map((portStr: string) => TaskParameters.parsePort(portStr));
     }
 
     private _getSecretVolume() {
@@ -258,9 +254,7 @@ export class TaskParameters {
             return accumulator;
         }, {} as { [propertyName: string]: string });
 
-        const volMount: ContainerInstanceManagementModels.VolumeMount = { "name": "secrets-vol", "mountPath": mountPath, readOnly: true };
-        this._volumes.push({ "name": volMount.name, secret: secretsMap });
-        this._volumeMounts.push(volMount);
+        this._volumes.push({ "name": "secrets-vol", secret: secretsMap });
     }
 
     private _getGitVolume() {
@@ -281,9 +275,7 @@ export class TaskParameters {
         if(gitRepoRevision) {
             vol.revision = gitRepoRevision;
         }
-        const volMount: ContainerInstanceManagementModels.VolumeMount = { "name":"git-repo-vol", "mountPath":gitRepoMountPath };
         this._volumes.push({ "name": "git-repo-vol", gitRepo: vol });
-        this._volumeMounts.push(volMount);
     }
 
     private _getAzureFileShareVolume() {
@@ -319,7 +311,24 @@ export class TaskParameters {
             volMount.readOnly = (afsReadOnly == "true");
         }
         this._volumes.push({ "name": "azure-file-share-vol", azureFile: vol });
-        this._volumeMounts.push(volMount);
+    }
+
+    private static parsePort(portStr: string): ContainerInstanceManagementModels.Port {
+        if (portStr.indexOf(':') > 0) {
+            const parts = portStr.split(':');
+            return {
+                port: parseInt(parts[0]),
+                protocol: TaskParameters.parsePortProtocol(parts[1])
+            } as ContainerInstanceManagementModels.Port;
+        }
+        return { port: parseInt(portStr) } as ContainerInstanceManagementModels.Port;
+    }
+
+    private static parsePortProtocol(protoStr: string): ContainerInstanceManagementModels.ContainerGroupNetworkProtocol {
+        if (['UDP', 'TCP'].indexOf(protoStr) < 0) {
+            throw new Error(`Invalid port protocol: ${protoStr}`);
+        }
+        return protoStr as ContainerInstanceManagementModels.ContainerGroupNetworkProtocol;
     }
 
     public static getTaskParams(endpoint: IAuthorizer) {
@@ -329,17 +338,17 @@ export class TaskParameters {
         return this.taskparams;
     }
 
+    public get containers() {
+        return this._containers;
+    }
+
+    public get groupName() {
+        return this._groupName;
+    }
+
     public get resourceGroup() {
         return this._resourceGroup;
     }
-
-    // public get commandLine() {
-    //     return this._commandLine;
-    // }
-
-    // public get cpu() {
-    //     return this._cpu;
-    // }
 
     public get diagnostics() {
         return this._diagnostics;
@@ -348,22 +357,6 @@ export class TaskParameters {
     public get dnsNameLabel() {
         return this._dnsNameLabel;
     }
-
-    // public get environmentVariables() {
-    //     return this._environmentVariables;
-    // }
-
-    // public get gpuCount() {
-    //     return this._gpuCount;
-    // }
-
-    // public get gpuSku() {
-    //     return this._gpuSKU;
-    // }
-
-    // public get image() {
-    //     return this._image;
-    // }
 
     public get ipAddress() {
         return this._ipAddress;
@@ -377,21 +370,9 @@ export class TaskParameters {
         return this._location;
     }
 
-    // public get memory() {
-    //     return this._memory;
-    // }
-
-    // public get containerName() {
-    //     return this._containerName;
-    // }
-
     public get osType() {
         return this._osType;
     }
-
-    // public get ports() {
-    //     return this._ports;
-    // }
 
     public get protocol() {
         return this._protocol;
@@ -416,10 +397,6 @@ export class TaskParameters {
     public get volumes() {
         return this._volumes;
     }
-
-    // public get volumeMounts() {
-    //     return this._volumeMounts;
-    // }
 
     public get subscriptionId() {
         return this._subscriptionId;

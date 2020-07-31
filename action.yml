@@ -94,7 +94,7 @@ inputs:
         description: 'Required Memory of the Containers in GB, accurate to one decimal place'
         required: false
         default: 1.5
-    name:
+    group-name:
         description: 'Name of the Container Group Instance'
         required: true
     os-type:

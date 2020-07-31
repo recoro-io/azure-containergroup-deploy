@@ -30,20 +30,10 @@ async function main() {
         core.debug("Deployment Step Started");
         let containerGroupInstance: ContainerInstanceManagementModels.ContainerGroup = {
             "location": taskParams.location,
-            "containers": [
-                {
-                    "name": taskParams.containerName,
-                    "command": taskParams.commandLine,
-                    "environmentVariables": taskParams.environmentVariables,
-                    "image": taskParams.image,
-                    "ports": taskParams.ports,
-                    "resources": getResources(taskParams),
-                    "volumeMounts": taskParams.volumeMounts
-                }
-            ],
+            "containers": taskParams.containers,
             "imageRegistryCredentials": taskParams.registryUsername ? [ { "server": taskParams.registryLoginServer, "username": taskParams.registryUsername, "password": taskParams.registryPassword } ] : [],
             "ipAddress": {
-                "ports": getPorts(taskParams),
+                "ports": getGroupPorts(taskParams),
                 "type": taskParams.ipAddress,
                 "dnsNameLabel": taskParams.dnsNameLabel
             },
@@ -53,16 +43,11 @@ async function main() {
             "osType": taskParams.osType,
             "restartPolicy": taskParams.restartPolicy,
             "type": "Microsoft.ContainerInstance/containerGroups",
-            "name": taskParams.containerName
+            "name": taskParams.groupName
         }
-        let containerDeploymentResult = await client.containerGroups.createOrUpdate(taskParams.resourceGroup, taskParams.containerName, containerGroupInstance);
+        let containerDeploymentResult = await client.containerGroups.createOrUpdate(taskParams.resourceGroup, taskParams.groupName, containerGroupInstance);
         if(containerDeploymentResult.provisioningState == "Succeeded") {
             console.log("Deployment Succeeded.");
-            let appUrlWithoutPort = containerDeploymentResult.ipAddress?.fqdn;
-            let port = taskParams.ports[0].port;
-            let appUrl = "http://"+appUrlWithoutPort+":"+port.toString()+"/"
-            core.setOutput("app-url", appUrl);
-            console.log("Your App has been deployed at: "+appUrl);
         } else {
             core.debug("Deployment Result: "+containerDeploymentResult);
             throw Error("Container Deployment Failed"+containerDeploymentResult);
@@ -78,38 +63,14 @@ async function main() {
     }
 }
 
-function getResources(taskParams: TaskParameters): ContainerInstanceManagementModels.ResourceRequirements {
-    if (taskParams.gpuCount) {
-        let resRequirements: ContainerInstanceManagementModels.ResourceRequirements = {
-            "requests": {
-                "cpu": taskParams.cpu,
-                "memoryInGB": taskParams.memory,
-                "gpu": {
-                    "count": taskParams.gpuCount,
-                    "sku": taskParams.gpuSku
-                }
-            }
+function getGroupPorts(taskParams: TaskParameters): Array<ContainerInstanceManagementModels.Port> {
+    return taskParams.containers.reduce((portsList, nextContainer) => { 
+        if (!!nextContainer.ports) {
+            const containerPortList = nextContainer.ports.map(containerPort => ({...containerPort} as ContainerInstanceManagementModels.Port));
+            portsList.push(...containerPortList);
         }
-        return resRequirements;
-    } else {
-        let resRequirements: ContainerInstanceManagementModels.ResourceRequirements = {
-            "requests": {
-                "cpu": taskParams.cpu,
-                "memoryInGB": taskParams.memory
-            }
-        }
-        return resRequirements;
-    }
-}
-
-function getContainer(taskParams)
-
-function getPorts(taskParams: TaskParameters): Array<ContainerInstanceManagementModels.Port> {
-    let ports = taskParams.ports;
-    ports.forEach((port) => {
-        port.protocol = taskParams.protocol;
-    });
-    return ports;
+        return portsList; 
+    }, [] as Array<ContainerInstanceManagementModels.Port>);
 }
 
 main();
