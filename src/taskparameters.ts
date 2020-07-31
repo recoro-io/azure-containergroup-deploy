@@ -9,21 +9,11 @@ export class TaskParameters {
     private static taskparams: TaskParameters;
     private _groupName: string;
     private _resourceGroup: string;
-    // private _commandLine: Array<string>;
-    // private _cpu: number;
     private _diagnostics: ContainerInstanceManagementModels.ContainerGroupDiagnostics;
     private _dnsNameLabel: string;
-    // private _environmentVariables: Array<ContainerInstanceManagementModels.EnvironmentVariable>;
-    // private _gpuCount: number;
-    // private _gpuSKU: ContainerInstanceManagementModels.GpuSku;
-    // private _image:string;
     private _ipAddress:ContainerInstanceManagementModels.ContainerGroupIpAddressType;
     private _location:string;
-    // private _memory: number;
-    // private _containerName: string;
     private _osType: ContainerInstanceManagementModels.OperatingSystemTypes;
-    // private _ports: Array<ContainerInstanceManagementModels.Port>;
-    private _protocol: ContainerInstanceManagementModels.ContainerGroupNetworkProtocol;
     private _registryLoginServer: string;
     private _registryUsername: string;
     private _registryPassword: string;
@@ -74,12 +64,6 @@ export class TaskParameters {
         } else {
             this._osType = (osType == 'Linux') ? 'Linux' : 'Windows';
         }
-        let protocol = core.getInput('protocol');
-        if(protocol && ["TCP", "UDP"].indexOf(protocol) < 0) {
-            throw Error("The Network Protocol can only be TCP or UDP");
-        } else {
-            this._protocol = protocol == "TCP" ? 'TCP' : 'UDP';
-        }
         this._registryLoginServer = core.getInput('registry-login-server');
         if(!this._registryLoginServer) {
             // If the user doesn't give registry login server and the registry is ACR
@@ -117,13 +101,13 @@ export class TaskParameters {
             if (!item['image'] || typeof item['image'] !== 'string') {
                 throw new Error('Container image may not be empty');
             }
-            const cpu = parseFloat(item['cpu']);
+            let cpu = parseFloat(item['cpu']);
             if (cpu <= 0) {
-                throw new Error('Container must have positive cpu parameter');
+                cpu = 1;
             }
-            const memory = parseFloat(item['memory']);
+            let memory = parseFloat(item['memory']);
             if (memory <= 0) {
-                throw new Error('Container must have positive memory parameter');
+                memory = 1.5;
             }
             const container = {
                 name: item['name'],
@@ -372,10 +356,6 @@ export class TaskParameters {
 
     public get osType() {
         return this._osType;
-    }
-
-    public get protocol() {
-        return this._protocol;
     }
 
     public get registryLoginServer() {
