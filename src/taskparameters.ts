@@ -199,7 +199,7 @@ export class TaskParameters {
                     "name": pairList[0], 
                     "value": pairList[1] || pairList[2]
                 };
-                this._environmentVariables.push(obj);
+                variables.push(obj);
             })
         }
         if(secureEnvironmentVariables) {
@@ -212,7 +212,7 @@ export class TaskParameters {
                     "name": pairList[0], 
                     "value": pairList[1] || pairList[2]
                 };
-                this._environmentVariables.push(obj);
+                variables.push(obj);
             })
         }
         return variables;

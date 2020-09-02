@@ -1,6 +1,6 @@
 {
-  "name": "azure-containergroup-deploy",
-  "version": "0.0.1",
+  "name": "aci-deploy",
+  "version": "0.1.0",
   "description": "GitHub Action to Deploy to Azure Container Groups with multiple containers",
   "main": "lib/main.js",
   "scripts": {
@@ -9,14 +9,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/korbicom/azure-containergroup-deploy.git"
+    "url": "git+https://github.com/PierreVH2/aci-deploy.git"
   },
   "author": "Mitesh Shah",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/korbicom/azure-containergroup-deploy/issues"
+    "url": "https://github.com/PierreVH2/aci-deploy/issues"
   },
-  "homepage": "https://github.com/korbicom/azure-containergroup-deploy#readme",
+  "homepage": "https://github.com/PierreVH2/aci-deploy#readme",
   "dependencies": {
     "@actions/core": "1.2.1",
     "@azure/arm-containerinstance": "^6.0.0",
