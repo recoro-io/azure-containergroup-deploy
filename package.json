@@ -1,7 +1,7 @@
 {
-  "name": "aci-create-action",
+  "name": "azure-containergroup-deploy",
   "version": "0.0.1",
-  "description": "GitHub Action to Deploy to Azure Container Instances",
+  "description": "GitHub Action to Deploy to Azure Container Groups with multiple containers",
   "main": "lib/main.js",
   "scripts": {
     "build": "tsc",
@@ -9,14 +9,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Azure/aci-deploy-action.git"
+    "url": "git+https://github.com/korbicom/azure-containergroup-deploy.git"
   },
   "author": "Mitesh Shah",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/Azure/aci-deploy-action/issues"
+    "url": "https://github.com/korbicom/azure-containergroup-deploy/issues"
   },
-  "homepage": "https://github.com/Azure/aci-deploy-action#readme",
+  "homepage": "https://github.com/korbicom/azure-containergroup-deploy#readme",
   "dependencies": {
     "@actions/core": "1.2.1",
     "@azure/arm-containerinstance": "^6.0.0",

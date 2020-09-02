@@ -3,7 +3,6 @@ import { IAuthorizer } from "azure-actions-webclient/Authorizer/IAuthorizer";
 import { ContainerInstanceManagementModels } from '@azure/arm-containerinstance';
 import { parse as yamlParse } from 'yaml';
 import { VolumeMount } from '@azure/arm-containerinstance/esm/models';
-import { parse } from 'path';
 
 export class TaskParameters {
     private static taskparams: TaskParameters;
@@ -41,7 +40,7 @@ export class TaskParameters {
         } else {
             if (ipAddress == 'Private') {
                 if (!networkProfileId) {
-                    throw Error('A network profile must be speicified if the IP address is set to Private');
+                    throw Error('A network profile must be specified if the IP address is set to Private');
                 }
                 if (!!this._dnsNameLabel) {
                     throw Error('A DNS label may not be specified if the IP address is set to Public');
@@ -52,7 +51,7 @@ export class TaskParameters {
                 }
             } else {
                 if (!!networkProfileId) {
-                    throw Error('A network profile may not be speicified if the IP address is set to Public');
+                    throw Error('A network profile may not be specified if the IP address is set to Public');
                 }
                 this._ipAddress = 'Public';
             }
