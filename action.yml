@@ -99,7 +99,7 @@ inputs:
         description: 'YAML object representing containers in this group'
         required: true
 branding:
-    icon: 'azure-logo.svg'
+    icon: 'arrow-up-circle'
     color: 'blue'
 runs:
     using: 'node12'
