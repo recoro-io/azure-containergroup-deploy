@@ -1,8 +1,5 @@
-# NOTE: Watch PR https://github.com/Azure/azure-sdk-for-js/pull/9757 - once this PR is merged and released tp NPM the arm-containerinstance code
-#       copied and pasted in this project can be replaced with the NPM package
-
-name: 'Deploy to Azure Container Instances'
-description: 'Deploy to Containers to Azure Container Instances. github.com/Azure/Actions'
+name: 'Deploy to Azure Container Group'
+description: 'Deploy to Containers to Azure Container Group. github.com/Azure/Actions'
 inputs:
     group-name:
         description: 'Name of the Container Group Instance'
