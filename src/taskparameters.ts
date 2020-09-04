@@ -150,12 +150,6 @@ export class TaskParameters {
                     "mountPath": item['gitrepoMountPath']
                 });
             }
-            if (!!item['gitrepoMountPath'] && typeof item['gitrepoMountPath'] === 'string') {
-                mounts.push({ 
-                    "name": "git-repo-vol",
-                    "mountPath": item['gitrepoMountPath']
-                });
-            }
             if (!!item['secretsMountPath'] && typeof item['secretsMountPath'] === 'string') {
                 mounts.push({ 
                     "name": "secrets-vol",
@@ -227,10 +221,6 @@ export class TaskParameters {
         if (!secretsStr) {
             return;
         }
-        const mountPath = core.getInput('secrets-mount-path');
-        if (!mountPath) {
-            throw new Error("The Mount Path for Secrets Volume is not specified.");
-        }
         const secretsMap = secretsStr.split(' ').reduce((accumulator, nextKeyVal) => {
             const keyval = nextKeyVal.split(/=(.+)/);
             accumulator[keyval[0].replace('_', '.')] = keyval[1] || '';
@@ -246,12 +236,8 @@ export class TaskParameters {
             return;
         }
         const gitRepoDir = core.getInput('gitrepo-dir');
-        const gitRepoMountPath = core.getInput('gitrepo-mount-path');
         const gitRepoRevision = core.getInput('gitrepo-revision');
         const vol: ContainerInstanceManagementModels.GitRepoVolume = { "repository": gitRepoVolumeUrl };
-        if(!gitRepoMountPath) {
-            throw Error("The Mount Path for GitHub Volume is not specified.");
-        }
         if(gitRepoDir) {
             vol.directory = gitRepoDir;
         }
@@ -275,23 +261,17 @@ export class TaskParameters {
             throw Error("The Storage Account Name for the Azure File Share is required to mount it as a volume");
         }
 
-        const afsMountPath = core.getInput('azure-file-volume-mount-path');
         const afsAccountKey = core.getInput('azure-file-volume-account-key');
         const afsReadOnly = core.getInput('azure-file-volume-read-only');
-        if(!afsMountPath) {
-            throw Error("The Mount Path for Azure File Share Volume is not specified");
-        }
         const vol: ContainerInstanceManagementModels.AzureFileVolume = { "shareName": afsShareName, "storageAccountName": afsAccountName };
         if(afsAccountKey) {
             vol.storageAccountKey = afsAccountKey;
         }
-        const volMount: ContainerInstanceManagementModels.VolumeMount = { "name": "azure-file-share-vol", "mountPath": afsMountPath };
         if(afsReadOnly) {
             if(["true", "false"].indexOf(afsReadOnly) < 0) {
                 throw Error("The Read-Only Flag can only be `true` or `false` for the Azure File Share Volume");
             }
             vol.readOnly = (afsReadOnly == "true");
-            volMount.readOnly = (afsReadOnly == "true");
         }
         this._volumes.push({ "name": "azure-file-share-vol", azureFile: vol });
     }

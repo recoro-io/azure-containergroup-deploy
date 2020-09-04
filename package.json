@@ -9,14 +9,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/PierreVH2/aci-deploy.git"
+    "url": "git+https://github.com/PierreVH2/azure-containergroup-deploy.git"
   },
   "author": "Mitesh Shah",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/PierreVH2/aci-deploy/issues"
+    "url": "https://github.com/PierreVH2/azure-containergroup-deploy/issues"
   },
-  "homepage": "https://github.com/PierreVH2/aci-deploy#readme",
+  "homepage": "https://github.com/PierreVH2/azure-containergroup-deploy#readme",
   "dependencies": {
     "@actions/core": "1.2.1",
     "@azure/arm-containerinstance": "^6.0.0",
@@ -24,6 +24,7 @@
     "@azure/ms-rest-js": "^2.0.7",
     "azure-actions-webclient": "1.0.8",
     "tslib": "^1.9.3",
+    "uuid": "^3.4.0",
     "yaml": "^1.10.0"
   },
   "devDependencies": {
