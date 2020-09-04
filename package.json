@@ -1,6 +1,6 @@
 {
   "name": "aci-deploy",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "GitHub Action to Deploy to Azure Container Groups with multiple containers",
   "main": "lib/main.js",
   "scripts": {
