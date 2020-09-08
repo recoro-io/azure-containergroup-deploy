@@ -140,20 +140,20 @@ export class TaskParameters {
             const mounts: VolumeMount[] = [];
             if (!!item['azureFileVolumeMountPath'] && typeof item['azureFileVolumeMountPath'] === 'string') {
                 mounts.push({ 
-                    "name": "azure-file-share-vol",
-                    "mountPath": item['azureFileVolumeMountPath']
+                    name: "azure-file-share-vol",
+                    mountPath: item['azureFileVolumeMountPath']
                 });
             }
             if (!!item['gitrepoMountPath'] && typeof item['gitrepoMountPath'] === 'string') {
                 mounts.push({ 
-                    "name": "git-repo-vol",
-                    "mountPath": item['gitrepoMountPath']
+                    name: "git-repo-vol",
+                    mountPath: item['gitrepoMountPath']
                 });
             }
             if (!!item['secretsMountPath'] && typeof item['secretsMountPath'] === 'string') {
                 mounts.push({ 
-                    "name": "secrets-vol",
-                    "mountPath": item['secretsMountPath']
+                    name: "secrets-vol",
+                    mountPath: item['secretsMountPath']
                 });
             }
             container.volumeMounts = mounts;
@@ -190,8 +190,8 @@ export class TaskParameters {
                 // value is either wrapped in quotes or not
                 let pairList = pair.split(/=(?:"(.+)"|(.+))/);
                 let obj: ContainerInstanceManagementModels.EnvironmentVariable = { 
-                    "name": pairList[0], 
-                    "value": pairList[1] || pairList[2]
+                    name: pairList[0], 
+                    value: pairList[1] || pairList[2]
                 };
                 variables.push(obj);
             })
@@ -203,8 +203,8 @@ export class TaskParameters {
                 // value is either wrapped in quotes or not
                 let pairList = pair.split(/=(?:"(.+)"|(.+))/);
                 let obj: ContainerInstanceManagementModels.EnvironmentVariable = { 
-                    "name": pairList[0], 
-                    "value": pairList[1] || pairList[2]
+                    name: pairList[0], 
+                    secureValue: pairList[1] || pairList[2]
                 };
                 variables.push(obj);
             })
@@ -227,7 +227,7 @@ export class TaskParameters {
             return accumulator;
         }, {} as { [propertyName: string]: string });
 
-        this._volumes.push({ "name": "secrets-vol", secret: secretsMap });
+        this._volumes.push({ name: "secrets-vol", secret: secretsMap });
     }
 
     private _getGitVolume() {
@@ -244,7 +244,7 @@ export class TaskParameters {
         if(gitRepoRevision) {
             vol.revision = gitRepoRevision;
         }
-        this._volumes.push({ "name": "git-repo-vol", gitRepo: vol });
+        this._volumes.push({ name: "git-repo-vol", gitRepo: vol });
     }
 
     private _getAzureFileShareVolume() {
@@ -273,7 +273,7 @@ export class TaskParameters {
             }
             vol.readOnly = (afsReadOnly == "true");
         }
-        this._volumes.push({ "name": "azure-file-share-vol", azureFile: vol });
+        this._volumes.push({ name: "azure-file-share-vol", azureFile: vol });
     }
 
     private static parsePort(portStr: string): ContainerInstanceManagementModels.Port {
