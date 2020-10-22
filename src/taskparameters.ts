@@ -84,6 +84,7 @@ export class TaskParameters {
         this._getSecretVolume();
         this._getGitVolume();
         this._getAzureFileShareVolume();
+        this._getEmptyFileVolue();
 
         this._containers = this._getContainers(core.getInput('containers'));
     }
@@ -154,6 +155,12 @@ export class TaskParameters {
                 mounts.push({ 
                     name: "secrets-vol",
                     mountPath: item['secretsMountPath']
+                });
+            }
+            if (!!item['emptyMountPath'] && typeof item['emptyMountPath'] === 'string') {
+                mounts.push({
+                    name: 'empty-vol',
+                    mountPath: item['emptyMountPath']
                 });
             }
             container.volumeMounts = mounts;
@@ -274,6 +281,16 @@ export class TaskParameters {
             vol.readOnly = (afsReadOnly == "true");
         }
         this._volumes.push({ name: "azure-file-share-vol", azureFile: vol });
+    }
+
+    private _getEmptyFileVolue() {
+        const emptyVolume = core.getInput('empty-volume') || "false";
+        if (["true", "false"].indexOf(emptyVolume) < 0) {
+            throw Error("The Empty-Volume Flag can only be `true` or `false`");
+        }
+        if (emptyVolume === "true") {
+            this._volumes.push({ name: "empty-vol", emptyDir: {} });
+        }
     }
 
     private static parsePort(portStr: string): ContainerInstanceManagementModels.Port {
