@@ -20,6 +20,7 @@ export class TaskParameters {
     private _volumes: Array<ContainerInstanceManagementModels.Volume>;
     private _networkProfile?: ContainerInstanceManagementModels.ContainerGroupNetworkProfile;
     private _containers: ContainerInstanceManagementModels.Container[];
+    private _ports: ContainerInstanceManagementModels.Port[];
     
     private _subscriptionId: string;
 
@@ -35,6 +36,10 @@ export class TaskParameters {
         this._getDiagnostics(logAnalyticsWorkspace, logAnalyticsWorkspaceKey, logType);
         const networkProfileId = core.getInput('network-profile');
         const ipAddress = core.getInput('ip-address');
+        const received_ports = core.getInput('ports');
+        if (!!received_ports && typeof(received_ports === 'string')) {
+           this._ports = this._getPorts(received_ports);
+        }
         if(ipAddress && ["Public", "Private"].indexOf(ipAddress) < 0) {
             throw Error('The Value of IP Address must be either Public or Private');
         } else {
@@ -376,5 +381,9 @@ export class TaskParameters {
 
     public get subscriptionId() {
         return this._subscriptionId;
+    }
+    
+    public get ports() {
+        return this._ports;
     }
 }

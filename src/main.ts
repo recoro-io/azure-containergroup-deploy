@@ -33,7 +33,7 @@ async function main() {
             "containers": taskParams.containers,
             "imageRegistryCredentials": taskParams.registryUsername ? [ { "server": taskParams.registryLoginServer, "username": taskParams.registryUsername, "password": taskParams.registryPassword } ] : [],
             "ipAddress": {
-                "ports": getGroupPorts(taskParams),
+                "ports": taskParams.ports,
                 "type": taskParams.ipAddress,
                 "dnsNameLabel": taskParams.dnsNameLabel
             },
