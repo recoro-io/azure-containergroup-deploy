@@ -36,10 +36,6 @@ export class TaskParameters {
         this._getDiagnostics(logAnalyticsWorkspace, logAnalyticsWorkspaceKey, logType);
         const networkProfileId = core.getInput('network-profile');
         const ipAddress = core.getInput('ip-address');
-        const received_ports = core.getInput('ports');
-        if (!!received_ports && typeof(received_ports === 'string')) {
-           this._ports = this._getPorts(received_ports);
-        }
         if(ipAddress && ["Public", "Private"].indexOf(ipAddress) < 0) {
             throw Error('The Value of IP Address must be either Public or Private');
         } else {
@@ -92,6 +88,13 @@ export class TaskParameters {
         this._getEmptyFileVolue();
 
         this._containers = this._getContainers(core.getInput('containers'));
+
+        const received_ports = core.getInput('ports');
+        if (!!received_ports && typeof(received_ports === 'string')) {
+           this._ports = this._getPorts(received_ports);
+        } else {
+            this._ports = this._getPorts("80:TCP");
+        }
     }
 
     private _getContainers(containersStr: string): ContainerInstanceManagementModels.Container[] {
