@@ -98,6 +98,7 @@ export class TaskParameters {
         }
 
         this._subnetIds = core.getInput('subnetIds');
+        console.log(this.subnetIds);
     }
 
     private _getContainers(containersStr: string): ContainerInstanceManagementModels.Container[] {

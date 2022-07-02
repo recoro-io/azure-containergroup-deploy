@@ -46,10 +46,11 @@ async function main() {
             "name": taskParams.groupName,
             "subnetIds": [
                 {
-                    "id": taskParams.subnetIDs
+                    "id": taskParams.subnetIds
                 }
             ]
         }
+        console.log(taskParams);
         let containerDeploymentResult = await client.containerGroups.createOrUpdate(taskParams.resourceGroup, taskParams.groupName, containerGroupInstance);
         if(containerDeploymentResult.provisioningState == "Succeeded") {
             console.log("Deployment Succeeded.");
