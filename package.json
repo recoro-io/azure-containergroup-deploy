@@ -19,7 +19,7 @@
   "homepage": "https://github.com/PierreVH2/azure-containergroup-deploy#readme",
   "dependencies": {
     "@actions/core": "1.2.6",
-    "@azure/arm-containerinstance": "^6.0.0",
+    "@azure/arm-containerinstance": "^7.0.0",
     "@azure/ms-rest-azure-js": "^2.0.1",
     "@azure/ms-rest-js": "^2.0.7",
     "azure-actions-webclient": "1.0.8",
