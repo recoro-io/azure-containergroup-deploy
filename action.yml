@@ -35,10 +35,6 @@ inputs:
         description: 'IP Address type of the Container Group. Accepted Values are { Private, Public }'
         required: false
         default: 'Public'
-    network-profile:
-        description: 'Network profile ID - required if IP is Private, ignored if IP is Public (looks like /subscriptions/<subscriptionID>/resourceGroups/<resourceGroup>/providers/Microsoft.Network/networkProfiles/<networkProfileName>)'
-        required: false
-        default: ''
     registry-login-server:
         description: 'The container image registry login server'
         required: false
