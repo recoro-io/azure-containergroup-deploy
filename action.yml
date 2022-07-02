@@ -90,6 +90,10 @@ inputs:
     containers:
         description: 'YAML object representing containers in this group'
         required: true
+    subnetIds:
+        description: 'VNet subnet id'
+        required: false
+        default: ''
 branding:
     icon: 'arrow-up-circle'
     color: 'blue'

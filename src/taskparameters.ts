@@ -21,6 +21,7 @@ export class TaskParameters {
     private _networkProfile?: ContainerInstanceManagementModels.ContainerGroupNetworkProfile;
     private _containers: ContainerInstanceManagementModels.Container[];
     private _ports: ContainerInstanceManagementModels.Port[];
+    private _subnetIds: string;
     
     private _subscriptionId: string;
 
@@ -95,6 +96,8 @@ export class TaskParameters {
         } else {
             this._ports = this._getPorts("80:TCP");
         }
+
+        this._subnetIds = core.getInput('subnetIds');
     }
 
     private _getContainers(containersStr: string): ContainerInstanceManagementModels.Container[] {
@@ -388,5 +391,9 @@ export class TaskParameters {
     
     public get ports() {
         return this._ports;
+    }
+
+    public get subnetIds() {
+        return this._subnetIds;
     }
 }
