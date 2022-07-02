@@ -42,12 +42,12 @@ async function main() {
             "osType": taskParams.osType,
             "restartPolicy": taskParams.restartPolicy,
             "type": "Microsoft.ContainerInstance/containerGroups",
-            "name": taskParams.groupName,
-            "subnetIds": [
-                {
-                    "id": taskParams.subnetIds
-                }
-            ]
+            "name": taskParams.groupName
+            // "subnetIds": [
+            //     {
+            //         "id": taskParams.subnetIds
+            //     }
+            // ]
         }
         console.log(taskParams);
         let containerDeploymentResult = await client.containerGroups.createOrUpdate(taskParams.resourceGroup, taskParams.groupName, containerGroupInstance);
