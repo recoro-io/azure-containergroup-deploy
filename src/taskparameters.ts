@@ -18,7 +18,6 @@ export class TaskParameters {
     private _registryPassword: string;
     private _restartPolicy: ContainerInstanceManagementModels.ContainerGroupRestartPolicy;
     private _volumes: Array<ContainerInstanceManagementModels.Volume>;
-    private _networkProfile?: ContainerInstanceManagementModels.ContainerGroupNetworkProfile;
     private _containers: ContainerInstanceManagementModels.Container[];
     private _ports: ContainerInstanceManagementModels.Port[];
     private _subnetIds: string;
@@ -35,26 +34,16 @@ export class TaskParameters {
         let logAnalyticsWorkspace = core.getInput('log-analytics-workspace');
         let logAnalyticsWorkspaceKey = core.getInput('log-analytics-workspace-key');
         this._getDiagnostics(logAnalyticsWorkspace, logAnalyticsWorkspaceKey, logType);
-        const networkProfileId = core.getInput('network-profile');
         const ipAddress = core.getInput('ip-address');
         if(ipAddress && ["Public", "Private"].indexOf(ipAddress) < 0) {
             throw Error('The Value of IP Address must be either Public or Private');
         } else {
             if (ipAddress == 'Private') {
-                if (!networkProfileId) {
-                    throw Error('A network profile must be specified if the IP address is set to Private');
-                }
                 if (!!this._dnsNameLabel) {
                     throw Error('A DNS label may not be specified if the IP address is set to Public');
                 }
                 this._ipAddress = 'Private';
-                this._networkProfile = {
-                    id: networkProfileId
-                }
             } else {
-                if (!!networkProfileId) {
-                    throw Error('A network profile may not be specified if the IP address is set to Public');
-                }
                 this._ipAddress = 'Public';
             }
         }
@@ -352,10 +341,6 @@ export class TaskParameters {
 
     public get ipAddress() {
         return this._ipAddress;
-    }
-
-    public get networkProfile() {
-        return this._networkProfile;
     }
 
     public get location() {
